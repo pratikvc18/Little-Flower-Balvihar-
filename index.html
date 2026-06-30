@@ -33,11 +33,14 @@
   html.cf,html.cf *{cursor:none!important}
   html.cf input,html.cf textarea,html.cf [contenteditable]{cursor:auto!important}
   #cdot,#cring{position:fixed;left:0;top:0;z-index:9999;pointer-events:none;border-radius:50%;transform:translate(-50%,-50%);will-change:transform;opacity:0;transition:opacity .3s}
-  #cdot{width:8px;height:8px;background:var(--coral);box-shadow:0 0 12px rgba(255,138,91,.8)}
-  #cring{width:38px;height:38px;border:2px solid rgba(255,138,91,.65);
-    transition:width .25s cubic-bezier(.2,.8,.2,1),height .25s cubic-bezier(.2,.8,.2,1),background .25s,border-color .25s,opacity .3s}
-  #cring.hot{width:64px;height:64px;background:rgba(255,194,61,.16);border-color:var(--sun)}
-  #cring.click{width:26px;height:26px;background:rgba(255,138,91,.32);border-color:var(--coral)}
+  #cdot{width:7px;height:7px;background:#fff;box-shadow:0 0 10px 2px rgba(255,135,168,.9),0 0 5px rgba(255,194,61,.85);transition:opacity .3s,background .25s,box-shadow .25s,width .25s,height .25s}
+  #cdot.hot{width:9px;height:9px;background:var(--sun);box-shadow:0 0 14px 3px rgba(255,194,61,.95)}
+  #cring{width:40px;height:40px;border:2px solid rgba(255,135,168,.5);background:rgba(255,135,168,.06);overflow:visible;
+    transition:width .25s cubic-bezier(.2,.8,.2,1),height .25s cubic-bezier(.2,.8,.2,1),background .3s,border-color .3s,box-shadow .3s,opacity .3s}
+  #cring.hot{border-color:transparent;background:transparent;box-shadow:0 0 26px rgba(255,135,168,.4)}
+  #cring.click{width:28px;height:28px;background:rgba(255,194,61,.28);border-color:var(--sun)}
+  #cring .pt{position:absolute;left:50%;top:50%;width:13px;height:18px;margin:-18px 0 0 -6.5px;border-radius:50% 50% 46% 46% / 72% 72% 28% 28%;transform-origin:50% 100%;transform:rotate(var(--a)) scale(0);opacity:0;transition:transform .42s cubic-bezier(.2,1.5,.45,1),opacity .3s}
+  #cring.hot .pt{transform:rotate(var(--a)) scale(1);opacity:.92}
   #clabel{position:fixed;left:0;top:0;z-index:9999;pointer-events:none;transform:translate(-50%,-50%);scale:.5;opacity:0;transition:opacity .2s,scale .2s;
     font-family:var(--display);font-weight:600;font-size:.8rem;color:var(--ink);background:#fff;padding:5px 12px;border-radius:999px;box-shadow:0 8px 20px -8px rgba(52,50,78,.5);white-space:nowrap}
   #clabel.on{opacity:1;scale:1}
@@ -793,10 +796,12 @@
 
   /* ---------- advanced custom cursor + sparkle trail ---------- */
   (function(){
-    if(reduce || !fine) return;
+    if(!fine) return;
     document.documentElement.classList.add('cf');
     var dot=document.createElement('div'); dot.id='cdot';
     var ring=document.createElement('div'); ring.id='cring';
+    var PC=['--petal','--sun','--leaf','--sky','--grape'];
+    for(var pi=0;pi<5;pi++){ var pt=document.createElement('span'); pt.className='pt'; pt.style.setProperty('--a',(pi*72)+'deg'); pt.style.background='var('+PC[pi]+')'; ring.appendChild(pt); }
     var label=document.createElement('div'); label.id='clabel';
     document.body.appendChild(ring); document.body.appendChild(dot); document.body.appendChild(label);
     var cv=document.getElementById('trail'), ctx=cv.getContext('2d'), parts=[];
@@ -823,26 +828,32 @@
     addEventListener('pointerdown', function(){ ring.classList.add('click'); setTimeout(function(){ ring.classList.remove('click'); }, 200); });
     document.addEventListener('mouseleave', function(){ dot.style.opacity=ring.style.opacity=0; label.classList.remove('on'); });
     document.addEventListener('mouseenter', function(){ if(shown){ dot.style.opacity=ring.style.opacity=1; if(lbl) label.classList.add('on'); } });
-    function emit(x,y){ parts.push({x:x+(Math.random()-.5)*6,y:y+(Math.random()-.5)*6,vx:(Math.random()-.5)*0.4,vy:-(0.25+Math.random()*0.5),life:1,r:2+Math.random()*3,col:cols[(Math.random()*cols.length)|0],st:Math.random()<0.32,rot:Math.random()*6.28,vr:(Math.random()-.5)*0.14});
-      if(parts.length>120) parts.splice(0,parts.length-120); }
-    function star(x,y,r,rot){ ctx.beginPath(); for(var i=0;i<5;i++){ var a=rot+i*1.2566; ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r); var b=a+0.6283; ctx.lineTo(x+Math.cos(b)*r*0.45,y+Math.sin(b)*r*0.45);} ctx.closePath(); ctx.fill(); }
+    function emit(x,y){ var n=1+(Math.random()<0.55?1:0);
+      for(var k=0;k<n;k++){ var rr=Math.random(), type=rr<0.14?'glint':(rr<0.42?'bloom':'petal');
+        parts.push({x:x+(Math.random()-.5)*5,y:y+(Math.random()-.5)*5,vx:(Math.random()-.5)*0.45,vy:0.03+Math.random()*0.2,life:1,r:type==='bloom'?(2.2+Math.random()*1.3):(type==='glint'?(2+Math.random()*1.6):(2.6+Math.random()*2.2)),col:cols[(Math.random()*cols.length)|0],type:type,rot:Math.random()*6.28,vr:(Math.random()-.5)*0.14,sway:Math.random()*6.28,swv:0.035+Math.random()*0.04}); }
+      if(parts.length>170) parts.splice(0,parts.length-170); }
+    function petal(x,y,s,rot,col){ ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.fillStyle=col; ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(s*0.62,-s*0.5,s*0.62,-s*1.5,0,-s*2); ctx.bezierCurveTo(-s*0.62,-s*1.5,-s*0.62,-s*0.5,0,0); ctx.fill(); ctx.restore(); }
+    function blossom(x,y,s,rot,col){ ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.fillStyle=col; for(var i=0;i<5;i++){ var a=i*1.2566; ctx.beginPath(); ctx.arc(Math.cos(a)*s,Math.sin(a)*s,s*0.6,0,6.28); ctx.fill(); } ctx.fillStyle='rgba(255,194,61,.95)'; ctx.beginPath(); ctx.arc(0,0,s*0.48,0,6.28); ctx.fill(); ctx.restore(); }
+    function glint(x,y,s,rot,col){ ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.fillStyle=col; ctx.beginPath(); for(var i=0;i<4;i++){ var a=i*1.5708; ctx.lineTo(Math.cos(a)*s,Math.sin(a)*s); var b=a+0.7854; ctx.lineTo(Math.cos(b)*s*0.3,Math.sin(b)*s*0.3);} ctx.closePath(); ctx.fill(); ctx.restore(); }
     function loop(){ requestAnimationFrame(loop);
       var rtx=tx, rty=ty;
       if(magEl){ var r=magEl.getBoundingClientRect(); rtx=tx+((r.left+r.width/2)-tx)*0.4; rty=ty+((r.top+r.height/2)-ty)*0.4; }
-      dx+=(tx-dx)*0.5; dy+=(ty-dy)*0.5;
-      prx=rx; pry=ry; rx+=(rtx-rx)*0.18; ry+=(rty-ry)*0.18;
-      var vx=rx-prx, vy=ry-pry, sp=Math.min(Math.sqrt(vx*vx+vy*vy)/16,0.55), ang=Math.atan2(vy,vx);
-      var sx=1+sp, sy=1-sp*0.7; if(hot){ sx=1; sy=1; }
+      prx=rx; pry=ry; rx+=(rtx-rx)*0.45; ry+=(rty-ry)*0.45;
+      if(hot){ dx+=(rx-dx)*0.6; dy+=(ry-dy)*0.6; } else { dx+=(tx-dx)*0.62; dy+=(ty-dy)*0.62; }
+      var vx=rx-prx, vy=ry-pry, sp=Math.min(Math.sqrt(vx*vx+vy*vy)/26,0.45), ang=Math.atan2(vy,vx);
+      var sx=1+sp, sy=1-sp*0.7, rrot=ang; if(hot){ sx=1; sy=1; rrot=0; }
       dot.style.transform='translate('+dx+'px,'+dy+'px) translate(-50%,-50%)';
-      ring.style.transform='translate('+rx+'px,'+ry+'px) translate(-50%,-50%) rotate('+ang+'rad) scale('+sx.toFixed(3)+','+sy.toFixed(3)+')';
-      label.style.transform='translate('+rx+'px,'+(ry+36)+'px) translate(-50%,-50%)';
-      if(hot!==ring.classList.contains('hot')) ring.classList.toggle('hot',hot);
-      var mdx=dx-lx, mdy=dy-ly; if(shown && (mdx*mdx+mdy*mdy)>90){ emit(dx,dy); lx=dx; ly=dy; }
+      ring.style.transform='translate('+rx+'px,'+ry+'px) translate(-50%,-50%) rotate('+rrot+'rad) scale('+sx.toFixed(3)+','+sy.toFixed(3)+')';
+      label.style.transform='translate('+rx+'px,'+(ry+40)+'px) translate(-50%,-50%)';
+      if(hot!==ring.classList.contains('hot')){ ring.classList.toggle('hot',hot); dot.classList.toggle('hot',hot); }
+      var mdx=rx-lx, mdy=ry-ly; if(shown && (mdx*mdx+mdy*mdy)>34){ emit(rx,ry); lx=rx; ly=ry; }
       ctx.clearRect(0,0,cv.width,cv.height);
-      for(var i=parts.length-1;i>=0;i--){ var p=parts[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.015; p.life-=0.022; p.rot+=p.vr;
+      for(var i=parts.length-1;i>=0;i--){ var p=parts[i]; p.sway+=p.swv; p.x+=p.vx+Math.sin(p.sway)*0.35; p.y+=p.vy; p.vy+=0.012; p.vx*=0.99; p.rot+=p.vr; p.life-=0.015;
         if(p.life<=0){ parts.splice(i,1); continue; }
-        ctx.globalAlpha=Math.max(0,p.life)*0.9; ctx.fillStyle=p.col;
-        if(p.st) star(p.x,p.y,(p.r*p.life)+1,p.rot); else { ctx.beginPath(); ctx.arc(p.x,p.y,(p.r*p.life)+0.6,0,6.28); ctx.fill(); } }
+        var al=Math.max(0,p.life), s=p.r*(0.55+p.life*0.45);
+        ctx.globalAlpha=al*0.16; ctx.fillStyle=p.col; ctx.beginPath(); ctx.arc(p.x,p.y,s*1.8,0,6.28); ctx.fill();
+        ctx.globalAlpha=al*0.95;
+        if(p.type==='bloom') blossom(p.x,p.y,s,p.rot,p.col); else if(p.type==='glint') glint(p.x,p.y,s*1.1,p.rot,p.col); else petal(p.x,p.y,s,p.rot,p.col); }
       ctx.globalAlpha=1; }
     loop();
   })();
